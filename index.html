@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BwithMe — Secure Verification Hub</title>
+    <style>
+        :root {
+            --bg-global: #0b071e;
+            --bg-container: #0f0a28;
+            --bg-card: #16103c;
+            --border-color: #241b56;
+            --text-main: #ffffff;
+            --text-muted: #8e89b3;
+            --color-primary: #d946ef;
+            --gradient-accent: linear-gradient(135deg, #a855f7, #ec4899);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-global);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .phone-wrapper {
+            background-color: var(--bg-container);
+            width: 100%;
+            max-width: 410px;
+            height: 720px;
+            border-radius: 42px;
+            border: 10px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 30px;
+            justify-content: center;
+        }
+
+        .title-area {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .title-area h1 {
+            font-size: 26px;
+            background: var(--gradient-accent);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .input-group {
+            margin-bottom: 18px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .input-field {
+            width: 100%;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 14px;
+            border-radius: 14px;
+            font-size: 15px;
+            outline: none;
+        }
+        
+        .uppercase-field {
+            text-transform: uppercase;
+        }
+
+        .action-btn {
+            background: var(--gradient-accent);
+            color: #ffffff;
+            border: none;
+            padding: 16px;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .alert-box {
+            background-color: rgba(239, 68, 68, 0.1);
+            border: 1px solid #ef4444;
+            color: #ef4444;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .key-display-box {
+            background: linear-gradient(180deg, var(--bg-card), rgba(217, 70, 239, 0.05));
+            border: 2px dashed var(--color-primary);
+            padding: 20px;
+            border-radius: 20px;
+            text-align: center;
+            margin-top: 25px;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .generated-key {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            letter-spacing: 1px;
+            margin: 15px 0;
+            background: #000;
+            padding: 10px;
+            border-radius: 8px;
+            word-break: break-all;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="phone-wrapper">
+        <div class="title-area">
+            <h1>Secure Identity Hub</h1>
+            <p style="color: var(--text-muted); font-size: 13px;">Enter authorization credentials to unlock key</p>
+        </div>
+
+        <div class="alert-box" id="statusMessage"></div>
+
+        <div id="formContainer">
+            <div class="input-group">
+                <label>First Name</label>
+                <input type="text" class="input-field uppercase-field" id="firstNameInput" placeholder="e.g. ACHRAF">
+            </div>
+            <div class="input-group">
+                <label>Last Name (First 2 Letters)</label>
+                <input type="text" class="input-field uppercase-field" id="lastNameInput" placeholder="e.g. SA" maxlength="2">
+            </div>
+            <div class="input-group">
+                <label>Your Personal Secret PIN (4 Digits)</label>
+                <input type="password" class="input-field" id="pinInput" placeholder="••••" maxlength="4" inputmode="numeric">
+            </div>
+            <button class="action-btn" onclick="claimMyKey()">Verify Identity & Generate →</button>
+        </div>
+
+        <div class="key-display-box" id="keyDisplayBox">
+            <p style="color: #6ee7b7; font-size: 14px; font-weight: 600;">⚠️ ONE-TIME GENERATION SUCCESSFUL</p>
+            <p style="color: var(--text-muted); font-size: 12px; margin-top: 4px;">Copy this token immediately. It cannot be shown again.</p>
+            <div class="generated-key" id="keyOutput">bwm.placeholderXXXX</div>
+            <button class="action-btn" style="background: var(--bg-card); border: 1px solid var(--border-color);" onclick="copyKey()">Copy Key to Clipboard</button>
+        </div>
+    </div>
+
+    <script>
+        // The master registry containing names, usernames, and secret 4-digit PIN access keys
+        const registry = {
+            "ABDELHAKIME OU": { username: "bwm.abdelhakime5821", pin: "4012" },
+            "ABDELILAH AI": { username: "bwm.abdelilah9034", pin: "8841" },
+            "ABDELLAH OU": { username: "bwm.abdellah4176", pin: "5592" },
+            "ABDERRAHIM BO": { username: "bwm.abderrahim1102", pin: "3104" },
+            "ABDERRAHMANE BE": { username: "bwm.abderrahmane6743", pin: "2941" },
+            "ACHRAF RE": { username: "bwm.achraf8819", pin: "7762" },
+            "ACHRAF SA": { username: "bwm.achraf2354", pin: "1940" },
+            "ADIL SA": { username: "bwm.adil7912", pin: "6610" },
+            "AHLAM BO": { username: "bwm.ahlam3021", pin: "4491" },
+            "AMAL EL": { username: "bwm.amal4498", pin: "8203" },
+            "AYA EL": { username: "bwm.aya6152", pin: "1159" },
+            "AYMANE FA": { username: "bwm.aymane3381", pin: "5024" },
+            "AYOUB AI": { username: "bwm.ayoub5092", pin: "9910" },
+            "AYOUBE BE": { username: "bwm.ayoube1276", pin: "3845" },
+            "CHAIMAE EL": { username: "bwm.chaimae9943", pin: "7129" },
+            "CHAIMA LH": { username: "bwm.chaima4051", pin: "8490" },
+            "CHAYMA EZ": { username: "bwm.chayma8210", pin: "6628" },
+            "DOUAA DA": { username: "bwm.douaa6639", pin: "1054" },
+            "EL MAHDI CH": { username: "bwm.elmahdi1752", pin: "3920" },
+            "ESSAADIA CH": { username: "bwm.essaadia4890", pin: "7741" },
+            "FATIMA CH": { username: "bwm.fatima2281", pin: "5192" },
+            "FATIMA HA": { username: "bwm.fatima7104", pin: "2039" },
+            "FATIMA TA": { username: "bwm.fatima5593", pin: "6102" },
+            "GHITA DI": { username: "bwm.ghita3641", pin: "8834" },
+            "HAJAR AS": { username: "bwm.hajar1098", pin: "4059" },
+            "HAJAR ZI": { username: "bwm.hajar8432", pin: "1190" },
+            "HAFSA RA": { username: "bwm.hafsa5021", pin: "3381" },
+            "HASNAE BI": { username: "bwm.hasnae6918", pin: "7724" },
+            "HIBA CH": { username: "bwm.hiba3374", pin: "9041" },
+            "HIBA ZD": { username: "bwm.hiba9105", pin: "2845" },
+            "HIND BE": { username: "bwm.hind2849", pin: "5512" },
+            "HIND FE": { username: "bwm.hind7732", pin: "6690" },
+            "HOUSSAM AA": { username: "bwm.houssam3914", pin: "1028" },
+            "IKRAM ID": { username: "bwm.ikram5528", pin: "4921" },
+            "IMANE BE": { username: "bwm.imane4190", pin: "8832" },
+            "IMRANE BO": { username: "bwm.imrane8043", pin: "7104" },
+            "ISMAIL SA": { username: "bwm.ismail2615", pin: "3394" },
+            "JAMILA AL": { username: "bwm.jamila9087", pin: "5501" },
+            "KAOUTAR BO": { username: "bwm.kaoutar3841", pin: "2918" },
+            "KAOUTAR OU": { username: "bwm.kaoutar7729", pin: "6712" },
+            "KAOUTAR RH": { username: "bwm.kaoutar1045", pin: "8041" },
+            "KHADIJA AG": { username: "bwm.khadija5193", pin: "4490" },
+            "KHADIJA EL": { username: "bwm.khadija2840", pin: "1128" },
+            "LAILA ET": { username: "bwm.laila6631", pin: "3945" },
+            "LAMYAE BE": { username: "bwm.lamyae4402", pin: "7721" },
+            "MARIAM BA": { username: "bwm.mariam1945", pin: "8812" },
+            "MAROUA JA": { username: "bwm.maroua8832", pin: "2094" },
+            "MARWANE EL": { username: "bwm.marwane3012", pin: "5104" },
+            "MARWANE GO": { username: "bwm.marwane7749", pin: "6639" },
+            "M'BAREK HA": { username: "bwm.mbarek5561", pin: "4021" },
+            "MOHAMED AI": { username: "bwm.mohamed1928", pin: "7731" },
+            "MOHAMED AJ": { username: "bwm.mohamed4401", pin: "1905" },
+            "MOHAMED AS": { username: "bwm.mohamed8839", pin: "2284" },
+            "MOHAMED CH": { username: "bwm.mohamed5190", pin: "5591" },
+            "MOHAMED EL": { username: "bwm.mohamed6624", pin: "6104" },
+            "MOSTAFA AC": { username: "bwm.mostafa3392", pin: "8840" },
+            "MOUNIA HA": { username: "bwm.mounia1094", pin: "3312" },
+            "NADIA RA": { username: "bwm.nadia4721", pin: "4495" },
+            "NASSIMA BA": { username: "bwm.nassima9031", pin: "1109" },
+            "NOUHAILA EL": { username: "bwm.nouhaila6643", pin: "7732" },
+            "NOUHAILA IH": { username: "bwm.nouhaila2190", pin: "8941" },
+            "OMAR BE": { username: "bwm.omar1843", pin: "5521" },
+            "OUMAIMA AK": { username: "bwm.oumaima7741", pin: "2034" },
+            "OUMAIMA RI": { username: "bwm.oumaima3092", pin: "6190" },
+            "OUMAYMA GU": { username: "bwm.oumayma1129", pin: "3341" },
+            "OUMAYMA RO": { username: "bwm.oumayma4451", pin: "8894" },
+            "OUSSAMA BA": { username: "bwm.oussama8824", pin: "4412" },
+            "OUSSAMA GA": { username: "bwm.oussama3910", pin: "7710" },
+            "RABIAA EL": { username: "bwm.rabiaa6712", pin: "5021" },
+            "RAJAA NO": { username: "bwm.rajaa1904", pin: "1154" },
+            "RANIA BA": { username: "bwm.rania3940", pin: "2943" },
+            "REDA HA": { username: "bwm.reda4019", pin: "8832" },
+            "RIDA EL": { username: "bwm.rida5590", pin: "6612" },
+            "SAAD HM": { username: "bwm.saad2281", pin: "3941" },
+            "SAIDA ES": { username: "bwm.saida1104", pin: "4028" },
+            "SALMA BE": { username: "bwm.salma3394", pin: "7712" },
+            "SALMA OU": { username: "bwm.salma8821", pin: "5539" },
+            "SALMA TO": { username: "bwm.salma4052", pin: "1102" },
+            "SAMIA KH": { username: "bwm.samia7719", pin: "2091" },
+            "SARA ZA": { username: "bwm.sara2943", pin: "8845" },
+            "SOUHAIB EFF": { username: "bwm.souhaib5510", pin: "6631" },
+            "SOUKAINA CH": { username: "bwm.soukaina1984", pin: "3940" },
+            "SOULAIMANE ES": { username: "bwm.soulaimane4439", pin: "5124" },
+            "WALID AL": { username: "bwm.walid3910", pin: "7749" },
+            "WALID BA": { username: "bwm.walid7712", pin: "8821" },
+            "WALID EL": { username: "bwm.walid6621", pin: "4410" },
+            "WIAM EL": { username: "bwm.wiam3092", pin: "1194" },
+            "YACINE BE": { username: "bwm.yacine1184", pin: "2045" },
+            "YASSAMINE BO": { username: "bwm.yassamine4490", pin: "3382" },
+            "YASSINE DR": { username: "bwm.yassine2291", pin: "5510" },
+            "YASSINE HA": { username: "bwm.yassine7103", pin: "6641" },
+            "YOUSSEF JA": { username: "bwm.youssef4829", pin: "7734" },
+            "YOUSSRA EL": { username: "bwm.youssra3021", pin: "8890" },
+            "ZAKARIA IZ": { username: "bwm.zakaria8832", pin: "1140" },
+            "ZINEB BO": { username: "bwm.zineb1104", pin: "4421" },
+            "ZINEB CH": { username: "bwm.zineb6632", pin: "5509" }
+        };
+
+        function claimMyKey() {
+            const firstName = document.getElementById('firstNameInput').value.trim().toUpperCase();
+            const lastName = document.getElementById('lastNameInput').value.trim().toUpperCase();
+            const enteredPin = document.getElementById('pinInput').value.trim();
+            const msgBox = document.getElementById('statusMessage');
+            
+            if(!firstName || !lastName || !enteredPin) {
+                showError("Please fill out all credential blocks.");
+                return;
+            }
+
+            const searchString = `${firstName} ${lastName}`;
+            
+            // Checks browser local storage to enforce a one-time retrieval trick
+            if(localStorage.getItem(`claimed_${searchString}`)) {
+                showError("SECURITY ALERT: Identity key has already been issued once and locked.");
+                return;
+            }
+
+            // Verify if the name exists in your records
+            if(registry[searchString]) {
+                // Verify if the custom assigned pin matches perfectly
+                if(registry[searchString].pin === enteredPin) {
+                    msgBox.style.display = "none";
+                    document.getElementById('formContainer').style.display = "none";
+                    
+                    // Reveal user token
+                    document.getElementById('keyOutput').innerText = registry[searchString].username;
+                    document.getElementById('keyDisplayBox').style.display = "block";
+                    
+                    // Trigger the permanent lock
+                    localStorage.setItem(`claimed_${searchString}`, "true");
+                } else {
+                    showError("Security Error: Invalid authentication PIN code.");
+                }
+            } else {
+                showError("Identity profile not found. Verify matching spelling.");
+            }
+        }
+
+        function showError(message) {
+            const msgBox = document.getElementById('statusMessage');
+            msgBox.style.backgroundColor = "rgba(239, 68, 68, 0.1)";
+            msgBox.style.borderColor = "#ef4444";
+            msgBox.style.color = "#ef4444";
+            msgBox.innerText = message;
+            msgBox.style.display = "block";
+        }
+
+        function copyKey() {
+            const keyText = document.getElementById('keyOutput').innerText;
+            navigator.clipboard.writeText(keyText);
+            alert("Key copied safely! Paste this into the main app login screen.");
+        }
+    </script>
+</body>
+</html>
